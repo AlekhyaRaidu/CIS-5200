@@ -1,0 +1,274 @@
+Uploaded data directly into Ambari.
+
+//Making airbnb_data directory
+hdfs dfs -mkdir airbnb_data
+
+//using airbnb database
+use airbnb_db;
+
+// Creating table for the 1st csv file of data set 
+
+create table airbnb_stage1(
+room_id double,host_id double,room_type string,borough string,neighborhood string,reviews string,overall_satisfaction string,
+accommodates string,bedrooms double,price double,minstay string,latitude double,longitude double,last_modified string,
+Survey_Date string,FolderName string)
+row format delimited fields terminated by '^'
+tblproperties("skip.header.line.count"="1");
+
+
+// Creating table for the 2nd csv file of data set 
+
+create table airbnb_stage2(
+room_id double, survey_id double,host_id double,room_type string,country string,city string,borough string,
+neighborhood string,reviews string,overall_satisfaction double,accommodates double,bedrooms double,
+bathrooms double,price double,minstay string,name string,last_modified string,latitude double,
+longitude double,location string,Survey_Date string,FolderName string)
+row format delimited fields terminated by '^'
+tblproperties("skip.header.line.count"="1");
+
+
+// Creating table for the 3rd csv file of data set 
+
+create table airbnb_stage3(
+room_id double, survey_id double,host_id double,room_type string,country string,city string,borough string,
+neighborhood string,reviews string,overall_satisfaction double,accommodates double,bedrooms double,
+bathrooms double,price double,minstay string,name string,property_type string,last_modified string,latitude double,
+longitude double,location string,Survey_Date string,FolderName string)
+row format delimited fields terminated by '^'
+tblproperties("skip.header.line.count"="1");
+
+
+
+// Creating table for the 4th csv file of data set 
+
+create table airbnb_stage4(
+room_id double,
+survey_id double,
+host_id double,
+room_type string,
+country string,
+city string,
+borough string,
+neighborhood string,
+reviews string,
+overall_satisfaction double,
+accommodates double,
+bedrooms double,
+bathrooms double,
+price double,
+minstay string,
+last_modified string,
+latitude string,
+longitude double,
+location double,
+Survey_Date string,
+FolderName string)
+row format delimited fields terminated by '^'
+tblproperties("skip.header.line.count"="1");
+
+//showing tables
+show tables;
+ 
+//Loading data into tables
+load data inpath 'hdfs:/user/abojjav/airbnb_data/Format1.csv into table airbnb_stage1;
+load data inpath 'hdfs:/user/abojjav/airbnb_data/Format2.csv into table airbnb_stage2;
+load data inpath 'hdfs:/user/abojjav/airbnb_data/Format3.csv into table airbnb_stage3;
+load data inpath 'hdfs:/user/abojjav/airbnb_data/Format4.csv into table airbnb_stage4;
+
+
+// Creating external table 
+
+Create external table airbnb_master(
+room_id double,host_id double,room_type string,borough string,neighborhood string,reviews string,overall_satisfaction string,
+accommodates string,bedrooms double,price double,minstay string,latitude double,longitude double,last_modified string,
+Survey_Date string,FolderName string)
+row format delimited fields terminated by '\t'
+LOCATION '/user/abojjav/';
+
+
+//Creating the master table which is union of 1st four tables
+
+select count (*) from (select room_id,
+host_id,
+room_type,
+borough,
+neighborhood,
+reviews,
+overall_satisfaction,
+accommodates,
+bedrooms,
+price,
+minstay,
+latitude,
+longitude,
+last_modified,
+Survey_Date,
+FolderName from airbnb_stage1
+UNION ALL
+select room_id,
+host_id,
+room_type,
+borough,
+neighborhood,
+reviews,
+overall_satisfaction,
+accommodates,
+bedrooms,
+price,
+minstay,
+latitude,
+longitude,
+last_modified,
+Survey_Date,
+FolderName from airbnb_stage2
+UNION ALL
+select room_id,
+host_id,
+room_type,
+borough,
+neighborhood,
+reviews,
+overall_satisfaction,
+accommodates,
+bedrooms,
+price,
+minstay,
+latitude,
+longitude,
+last_modified,
+Survey_Date,
+FolderName from airbnb_stage3
+UNION ALL
+select room_id,
+host_id,
+room_type,
+borough,
+neighborhood,
+reviews,
+overall_satisfaction,
+accommodates,
+bedrooms,
+price,
+minstay,
+latitude,
+longitude,
+last_modified,
+Survey_Date,
+FolderName from airbnb_stage4)  abc;
+
+// describe all the fields
+
+Describe airbnb_master;
+
+
+//View all rows:
+SELECT * FROM airbnb_master;
+
+
+// Inserting data into Master table using union operator
+
+insert into table airbnb_master
+select room_id,
+host_id,
+room_type,
+borough,
+neighborhood,
+reviews,
+overall_satisfaction,
+accommodates,
+bedrooms,
+price,
+minstay,
+latitude,
+longitude,
+last_modified,
+Survey_Date,
+FolderName from airbnb_stage1
+UNION ALL
+select room_id,
+host_id,
+room_type,
+borough,
+neighborhood,
+reviews,
+overall_satisfaction,
+accommodates,
+bedrooms,
+price,
+minstay,
+latitude,
+longitude,
+last_modified,
+Survey_Date,
+FolderName from airbnb_stage2
+UNION ALL
+select room_id,
+host_id,
+room_type,
+borough,
+neighborhood,
+reviews,
+overall_satisfaction,
+accommodates,
+bedrooms,
+price,
+minstay,
+latitude,
+longitude,
+last_modified,
+Survey_Date,
+FolderName from airbnb_stage3
+UNION ALL
+select room_id,
+host_id,
+room_type,
+borough,
+neighborhood,
+reviews,
+overall_satisfaction,
+accommodates,
+bedrooms,
+price,
+minstay,
+latitude,
+longitude,
+last_modified,
+Survey_Date,
+FolderName from airbnb_stage4;
+
+
+// Finding highest number of accomodate for each root type
+
+Drop table if exists highaccommodates;
+create table highaccommodates as
+select count(accommodates),room_type
+from airbnb_stage2
+group by room_type;
+
+
+//Finding average overall satisfaction of Airbnb service in all cities 
+
+Drop table if exists satisfaction;
+create table satisfaction as
+select city,avg(overall_satisfaction)
+from airbnb_stage2
+group by city;
+
+
+//Finding reviewd and survyed cities in differet countries
+
+Drop table if exists review;
+create table review as
+select country,city,survey_id,reviews
+from airbnb_stage2
+group by country,city,survey_id,reviews;
+
+
+//finding number of rooms booked in each city
+
+Drop table if exists rooms;
+create table rooms as
+select city,count(bedrooms+bathrooms), country
+from airbnb_stage2
+group by city,country
+
